@@ -1,3 +1,129 @@
+from skimage.util import random_noise
+from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
+                                 denoise_wavelet, estimate_sigma)
+from skimage.color import rgb2gray
+from PIL import Image
+import skimage.io as io
+
+import numpy as np
+import matplotlib.pyplot as plt
+from steganography import *
+
+class ImageProcessor:
+
+	def __init__(self, image_url):
+		try:
+			# Pristine image that we can reset to.
+			self.original_url = image_url
+			self.image = io.imread(image_url)
+		except:
+			print 'Could not find image in directory.'
+
+		# Altered image that we will do any alterations to.
+		self.altered_image = io.imread(image_url)
+
+	def reset(self):
+		self.altered_image = np.copy(self.image)
+
+	## Denoising methods
+	def noisy(self,noise_typ):
+
+	   	if noise_typ == "gauss":
+		  	row,col,ch= self.altered_image.shape
+		  	mean = 0
+		  	var = 0.1
+		  	sigma = var**0.5
+		 	gauss = np.random.normal(mean,sigma,(row,col,ch))
+		 	gauss = gauss.reshape(row,col,ch)
+		 	noisy = self.altered_image + gauss
+		  	return noisy
+		elif noise_typ == "s&p":
+		  	row,col,ch = self.altered_image.shape
+		  	s_vs_p = 0.5
+		  	amount = 0.004
+		  	out = np.copy(self.altered_image)
+		  	# Salt mode
+		  	num_salt = np.ceil(amount * self.altered_image.size * s_vs_p)
+		  	coords = [np.random.randint(0, i - 1, int(num_salt))
+				  for i in self.altered_image.shape]
+		  	out[coords] = 1
+
+		  	# Pepper mode
+		  	num_pepper = np.ceil(amount* self.altered_image.size * (1. - s_vs_p))
+		  	coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in self.altered_image.shape]
+		  	out[coords] = 0
+		  	return out
+	  	elif noise_typ == "poisson":
+		  	vals = len(np.unique(self.altered_image))
+		  	vals = 2 ** np.ceil(np.log2(vals))
+		  	noisy = np.random.poisson(self.altered_image * vals) / float(vals)
+		  	return noisy
+		elif noise_typ =="speckle":
+		  	row,col,ch = self.altered_image.shape
+		  	gauss = np.random.randn(row,col,ch)
+		 	gauss = gauss.reshape(row,col,ch)        
+		  	noisy = self.altered_image + self.altered_image * gauss
+		  	return noisy
+
+	### Code to make an image noisy
+	def makeNoisyImage(self, sig = 0.155, save = False, plot = False):
+		sigma = sig
+		noisy = random_noise(self.image, var=sigma**2)
+		self.altered_image = noisy
+
+		if plot:
+			fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 5),
+		                       sharex=True, sharey=True)
+			ax[0].imshow(noisy)
+			ax[0].axis('off')
+			ax[0].set_title('Noisy')
+			ax[1].imshow(denoise_tv_chambolle(noisy, weight=0.1, multichannel=True))
+			ax[1].axis('off')
+			ax[1].set_title('Denoised')
+			if save:
+				plt.savefig('noise_denoise.png', transparent = True)
+
+	def imageDenoise(self, denoise_method = 'TV'):
+		if denoise_method == 'TV':
+			return denoise_tv_chambolle(self.altered_image)
+		elif denoise_method == 'bilateral':
+			return denoise_bilateral(self.altered_image, sigma_color = 0.05, sigma_spatial = 15, multichannel = True)
+		elif denoise_method == 'wavelet':
+			return denoise_wavelet(self.altered_image, multichannel = True)
+		else:
+			print denoise_method, ' is not a valid denoising method choice.'
+
+	## The Steganography methods
+	def hideMyImage(self, image_url = None, save = False, output_url = './merged.png'):
+		# Full credit for this code goes to Kelvin S. do Prado. See the official Github at
+		# https://github.com/kelvins/steganography
+		merged_image = Steganography.merge(Image.open(self.original_url), Image.open(image_url))
+		if save:
+			merged_image.save(output_url)
+		else:
+			print 'Assigned a merged image'
+			self.merged_image = merged_image
+		return merged_image
+
+	def revealMyImage(self, image_url = None, save = False, output_url='./unmerged.png'):
+		if image_url == None:
+			try:
+				unmerged_image = Steganography.unmerge(self.merged_image)
+			except:
+				print 'The system has no valid merged image stored.'
+		
+		else:
+			try:
+				unmerged_image = Steganography.unmerge(Image.open(image_url))
+			except:
+				print 'There was an issue opening the image url.'
+		if save:
+			unmerged_image.save(output_url)
+		return unmerged_image
+
+
+
+### Spectral Methods
 def nm_to_rgb(nm):
 	"""
 	Accepts a wavelength value in either string format (such as those provided by 'input()') or direct numerical format (e.g. 584) and converts it to the related RGB values.  Based on the code given at:
@@ -83,44 +209,5 @@ def nm_to_rgb(nm):
 
 	## Output ##
 	return rgb
-	
 import numpy as np
 import os
-
-def noisy(noise_typ,image):
-   	if noise_typ == "gauss":
-	  	row,col,ch= image.shape
-	  	mean = 0
-	  	var = 0.1
-	  	sigma = var**0.5
-	 	gauss = np.random.normal(mean,sigma,(row,col,ch))
-	 	gauss = gauss.reshape(row,col,ch)
-	 	noisy = image + gauss
-	  	return noisy
-	elif noise_typ == "s&p":
-	  	row,col,ch = image.shape
-	  	s_vs_p = 0.5
-	  	amount = 0.004
-	  	out = np.copy(image)
-	  	# Salt mode
-	  	num_salt = np.ceil(amount * image.size * s_vs_p)
-	  	coords = [np.random.randint(0, i - 1, int(num_salt))
-			  for i in image.shape]
-	  	out[coords] = 1
-
-	  	# Pepper mode
-	  	num_pepper = np.ceil(amount* image.size * (1. - s_vs_p))
-	  	coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in image.shape]
-	  	out[coords] = 0
-	  	return out
-  	elif noise_typ == "poisson":
-	  	vals = len(np.unique(image))
-	  	vals = 2 ** np.ceil(np.log2(vals))
-	  	noisy = np.random.poisson(image * vals) / float(vals)
-	  	return noisy
-	elif noise_typ =="speckle":
-	  	row,col,ch = image.shape
-	  	gauss = np.random.randn(row,col,ch)
-	 	gauss = gauss.reshape(row,col,ch)        
-	  	noisy = image + image * gauss
-	  	return noisy

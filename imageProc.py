@@ -28,6 +28,36 @@ class ImageProcessor:
 	def reset(self):
 		self.altered_image = np.copy(self.image)
 
+	def returnImage(self):
+		return self.image
+	## Color Separating methods
+
+	def splitColors(self, style = 'RGB'):
+
+		scale = 255
+		if style == 'RGB':
+			red = np.zeros(self.image.shape, dtype="uint8")
+			green = np.zeros(self.image.shape, dtype="uint8")
+			blue = np.zeros(self.image.shape, dtype="uint8")
+
+			red[:,:,0] = self.image[:,:,0] * 255
+			green[:,:,1] = self.image[:,:,1] * 255
+			blue[:,:,2] = self.image[:,:,2] * 255
+
+			return [red,green,blue]
+		elif style == 'CMYK':
+			cyan = np.zeros(self.image.shape, dtype="uint8") + scale
+			magenta = np.zeros(self.image.shape, dtype="uint8") + scale
+			yellow = np.zeros(self.image.shape, dtype="uint8") + scale
+
+			cyan[:,:,0] = self.image[:,:,0] * scale
+			magenta[:,:,1] = self.image[:,:,1] * scale
+			yellow[:,:,2] = self.image[:,:,2] * scale
+			return [cyan, magenta, yellow]
+
+	def rand_noise(self):
+		return random_noise(self.image, var=0.155**2)
+
 	## Denoising methods
 	def noisy(self,noise_typ):
 
@@ -85,7 +115,7 @@ class ImageProcessor:
 			ax[1].set_title('Denoised')
 			if save:
 				plt.savefig('noise_denoise.png', transparent = True)
-
+		return self.altered_image
 	def imageDenoise(self, denoise_method = 'TV'):
 		if denoise_method == 'TV':
 			return denoise_tv_chambolle(self.altered_image)

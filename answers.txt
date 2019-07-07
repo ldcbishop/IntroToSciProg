@@ -1,0 +1,75 @@
+
+Question 2
+numbers = np.arange(0,5000,3)
+this_sum = 0
+for i in numbers:
+    this_sum += i
+    
+examiner.testQuestion2(this_sum)
+
+Question 3
+this_sum = 0
+for i in numbers:
+    if i % 2 == 1:
+        this_sum += i
+print this_sum   
+examiner.testQuestion3(this_sum)
+
+Question 4
+this_sum = 0 
+that_sum = 0
+for i in numbers:
+    if i % 2 == 1:
+        this_sum += i
+    elif int(i**0.5 + 0.5)**2 == i:
+        that_sum += i
+examiner.testQuestion4(this_sum, that_sum)
+
+Question 5
+odds = 0
+evens = 0
+for i in numbers:
+    if i % 2 == 0:
+        evens+= i
+    else:
+        odds+= i
+final_val = np.round(float(evens)/float(odds),2)
+examiner.testQuestion5(final_val)
+
+Question 6
+def evenAndodds(numbers):
+    odds = 0
+    evens = 0
+    for i in numbers:
+        if i%2 == 0:
+            evens+=i
+        else:
+            odds+=i
+    return np.round(float(evens)/float(odds),2)
+a = evenAndodds
+examiner.testQuestion6(a)
+
+Question 7
+class yourClass:
+    def evenAndodds(self, numbers):
+        odds = 0
+        evens = 0
+        for i in numbers:
+            if i%2 == 0:
+                evens+=i
+            else:
+                odds+=i
+        return np.round(float(evens)/float(odds),2)
+a = yourClass()
+examiner.testQuestion7(a)
+
+Final Question
+class a:
+	x = 3.0
+	y = 5.0
+	z = 2.0
+	def AreaOfCircle(self):
+		return 3.14 *(self.y-self.x)**2
+	
+	def VolumeOfCone(self):
+		return self.AreaOfCircle() * self.z/3
